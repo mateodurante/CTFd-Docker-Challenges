@@ -8,8 +8,13 @@ from ..models.models import DockerConfig
 logger = logging.getLogger(__name__)
 
 
-def do_request(docker: DockerConfig, url: str, headers: dict = None,
-               method: str = "GET", data: dict | str = None) -> list | Response:
+def do_request(
+    docker: DockerConfig,
+    url: str,
+    headers: dict = None,
+    method: str = "GET",
+    data: dict | str = None,
+) -> list | Response:
     tls = docker.tls_enabled
     prefix = "https" if tls else "http"
     host = docker.hostname
@@ -23,18 +28,18 @@ def do_request(docker: DockerConfig, url: str, headers: dict = None,
         headers = {"Content-Type": "application/json"}
 
     request_args = {
-        'url': f"{base}{url}",
-        'headers': headers,
-        'method': method,
-        'timeout': (3, 20)
+        "url": f"{base}{url}",
+        "headers": headers,
+        "method": method,
+        "timeout": (3, 20),
     }
 
     if data:
-        request_args['data'] = data
+        request_args["data"] = data
 
     if tls:
-        request_args['cert'] = (docker.client_cert, docker.client_key)
-        request_args['verify'] = False
+        request_args["cert"] = (docker.client_cert, docker.client_key)
+        request_args["verify"] = False
 
     logging.info(f'Request to Docker: {request_args["method"]} {request_args["url"]}')
 
@@ -47,6 +52,8 @@ def do_request(docker: DockerConfig, url: str, headers: dict = None,
         logging.error("Request timed out.")
     except RequestException as err:
         logging.error(f"An error occurred while making the request: {err}")
+    except OSError as err:
+        logging.error(f"Cannot connect to the Docker server: {err}")
 
     return resp
 
@@ -81,14 +88,14 @@ def get_docker_info(docker: DockerConfig) -> str:
     r = do_request(docker, "/version")
 
     if not r:
-        return 'Failed to get docker version info'
+        return "Failed to get docker version info"
 
     response = r.json()
-    if 'Components' not in response:
-        return 'Failed to find information required in response.'
+    if "Components" not in response:
+        return "Failed to find information required in response."
 
-    components = response['Components']
-    output = 'Docker versions:\n'
+    components = response["Components"]
+    output = "Docker versions:\n"
     for component in components:
         output += f"{component['Name']}: {component['Version']}\n"
 
@@ -115,7 +122,7 @@ def get_unavailable_ports(docker: DockerConfig):
     r = do_request(docker, "/containers/json?all=1")
 
     if not r:
-        print('Unable to get list of ports that are unavailable (containers)!')
+        print("Unable to get list of ports that are unavailable (containers)!")
         return []
 
     result = list()
@@ -132,16 +139,16 @@ def get_unavailable_ports(docker: DockerConfig):
 
     r = do_request(docker, "/services?all=1")
     if not r:
-        print('Unable to get list of ports that are unavailable (services)!')
+        print("Unable to get list of ports that are unavailable (services)!")
         return result
 
     rj = r.json()
     if "message" in rj:
-        if 'This node is not a swarm manager.' in rj['message']:
+        if "This node is not a swarm manager." in rj["message"]:
             return result
 
     for i in r.json():
-        if 'Endpoint' not in i:
+        if "Endpoint" not in i:
             continue
 
         endpoint = i["Endpoint"]["Spec"]
