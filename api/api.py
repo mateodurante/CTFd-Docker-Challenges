@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import abort, request
 from flask_restx import Namespace, Resource
@@ -91,7 +91,6 @@ class ContainerAPI(Resource):
     # I wish this was Post... Issues with API/CSRF and whatnot. Open to a Issue solving this.
     def get(self):
         challenge_id = request.args.get("id")
-        print("AAAAAAAAAAAAAAAAAAAAAAAAB", challenge_id)
         if not challenge_id:
             return abort(400, "Invalid request")
         docker = DockerConfig.query.filter_by(id=1).first()
@@ -129,45 +128,32 @@ class ContainerAPI(Resource):
                 .filter_by(challenge_id=challenge.id)
                 .first()
             )
-        print("AAAAAAAAAAAAAAAAAAAAAAAAC", check)
+
         if check:
-            print("AAAAAAAAAAAAAAAAAAAAAAAAD", check.timestamp)
-            print("AAAAAAAAAAAAAAAAAAAAAAAAE", unix_time(datetime.utcnow()))
-            print(
-                "AAAAAAAAAAAAAAAAAAAAAAAAG",
-                unix_time(datetime.utcnow()),
-                "-",
-                int(check.timestamp),
-                "=",
-                (unix_time(datetime.utcnow()) - int(check.timestamp)),
-            )
-        # If this container is already created, we don't need another one.
-        if (
-            False
-            and check != None
-            and (unix_time(datetime.utcnow()) - int(check.timestamp)) < 300
-        ):
-            return abort(400, "You already have a container for this challenge.")
-        # The exception would be if we are reverting a box. So we'll delete it if it exists and has been around for more than 5 minutes.
-        elif check != None:
-            print("BBBBBBBBBBBBBB", "not none")
-            delete_docker(docker, challenge.type, check.instance_id)
-            if is_teams_mode():
-                DockerChallengeTracker.query.filter_by(team_id=session.id).filter_by(
-                    docker_image=challenge.docker_image
-                ).filter_by(challenge_id=challenge.id).delete()
+            # If this container is already created, we don't need another one.
+            if (unix_time(datetime.utcnow()) - int(check.timestamp)) < 300:
+                # The exception would be if we are reverting a box. So we'll delete it if it exists and has been around for more than 5 minutes.
+                return abort(400, "You already have a container for this challenge.")
             else:
-                DockerChallengeTracker.query.filter_by(user_id=session.id).filter_by(
-                    docker_image=challenge.docker_image
-                ).filter_by(challenge_id=challenge.id).delete()
-            db.session.commit()
+                # If the container is older than 5 minutes, we'll delete it and create a new one.
+                delete_docker(docker, challenge.type, check.instance_id)
+                if is_teams_mode():
+                    DockerChallengeTracker.query.filter_by(
+                        team_id=session.id
+                    ).filter_by(docker_image=challenge.docker_image).filter_by(
+                        challenge_id=challenge.id
+                    ).delete()
+                else:
+                    DockerChallengeTracker.query.filter_by(
+                        user_id=session.id
+                    ).filter_by(docker_image=challenge.docker_image).filter_by(
+                        challenge_id=challenge.id
+                    ).delete()
+                db.session.commit()
 
         portsbl = get_unavailable_ports(docker)
 
-        print(docker)
-
         if challenge.docker_type == "service":
-            print("CCCCCCCCCCCCC", "service")
             instance_id, data = create_service(
                 docker=docker,
                 challenge_id=challenge.id,
@@ -178,7 +164,6 @@ class ContainerAPI(Resource):
             ports_json = json.loads(data)["EndpointSpec"]["Ports"]
             ports = [f"{p['PublishedPort']}/{p['Protocol']}" for p in ports_json]
         else:
-            print("CCCCCCCCCCCCC", "not service")
             instance_id, data = create_container(
                 docker=docker,
                 image=challenge.docker_image,
