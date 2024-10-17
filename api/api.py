@@ -219,7 +219,7 @@ class DockerStatus(Resource):
                     "revert_time": i.revert_time,
                     "instance_id": i.instance_id,
                     "ports": i.ports.split(","),
-                    "host": str(docker.hostname).split(":")[0],
+                    "host": str(docker.public_hostname).split(":")[0],
                 }
             )
         return {"success": True, "data": data}

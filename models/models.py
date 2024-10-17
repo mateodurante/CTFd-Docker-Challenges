@@ -1,5 +1,4 @@
-from wtforms import (FileField, HiddenField, RadioField, SelectMultipleField,
-                     StringField)
+from wtforms import FileField, HiddenField, RadioField, SelectMultipleField, StringField
 
 from CTFd.forms import BaseForm
 from CTFd.forms.fields import SubmitField
@@ -8,10 +7,12 @@ from CTFd.models import Challenges, db
 
 class DockerConfig(db.Model):
     """
-	Docker Config Model. This model stores the config for docker API connections.
-	"""
+    Docker Config Model. This model stores the config for docker API connections.
+    """
+
     id = db.Column(db.Integer, primary_key=True)
     hostname = db.Column("hostname", db.String(64), index=True)
+    public_hostname = db.Column("public_hostname", db.String(64), index=True)
     tls_enabled = db.Column("tls_enabled", db.Boolean, default=False, index=True)
     ca_cert = db.Column("ca_cert", db.String(2200), index=True)
     client_cert = db.Column("client_cert", db.String(2000), index=True)
@@ -21,8 +22,9 @@ class DockerConfig(db.Model):
 
 class DockerChallengeTracker(db.Model):
     """
-	Docker Container Tracker. This model stores the users/teams active docker containers.
-	"""
+    Docker Container Tracker. This model stores the users/teams active docker containers.
+    """
+
     id = db.Column(db.Integer, primary_key=True)
     team_id = db.Column("team_id", db.String(64), index=True)
     user_id = db.Column("user_id", db.String(64), index=True)
@@ -31,8 +33,8 @@ class DockerChallengeTracker(db.Model):
     timestamp = db.Column("timestamp", db.Integer, index=True)
     revert_time = db.Column("revert_time", db.Integer, index=True)
     instance_id = db.Column("instance_id", db.String(128), index=True)
-    ports = db.Column('ports', db.String(128), index=True)
-    host = db.Column('host', db.String(128), index=True)
+    ports = db.Column("ports", db.String(128), index=True)
+    host = db.Column("host", db.String(128), index=True)
 
 
 class DockerConfigForm(BaseForm):
@@ -40,24 +42,28 @@ class DockerConfigForm(BaseForm):
     hostname = StringField(
         "Docker Hostname", description="The Hostname/IP and Port of your Docker Server"
     )
-    tls_enabled = RadioField('TLS Enabled?')
-    ca_cert = FileField('CA Cert')
-    client_cert = FileField('Client Cert')
-    client_key = FileField('Client Key')
-    repositories = SelectMultipleField('Repositories')
-    submit = SubmitField('Submit')
+    public_hostname = StringField(
+        "Public Hostname",
+        description="The Public Hostname/IP and Port of your Docker Server to show to users",
+    )
+    tls_enabled = RadioField("TLS Enabled?")
+    ca_cert = FileField("CA Cert")
+    client_cert = FileField("Client Cert")
+    client_key = FileField("Client Key")
+    repositories = SelectMultipleField("Repositories")
+    submit = SubmitField("Submit")
 
 
 class DockerChallenge(Challenges):
-    __mapper_args__ = {'polymorphic_identity': 'docker'}
-    id = db.Column(None, db.ForeignKey('challenges.id'), primary_key=True)
+    __mapper_args__ = {"polymorphic_identity": "docker"}
+    id = db.Column(None, db.ForeignKey("challenges.id"), primary_key=True)
     docker_type = db.Column(db.String(128), index=True)
     docker_image = db.Column(db.String(128), index=True)
 
 
 class DockerServiceChallenge(Challenges):
-    __mapper_args__ = {'polymorphic_identity': 'docker_service'}
-    id = db.Column(None, db.ForeignKey('challenges.id'), primary_key=True)
+    __mapper_args__ = {"polymorphic_identity": "docker_service"}
+    id = db.Column(None, db.ForeignKey("challenges.id"), primary_key=True)
     docker_type = db.Column(db.String(128), index=True)
     docker_image = db.Column(db.String(128), index=True)
     docker_secrets = db.Column(db.String(4096))
