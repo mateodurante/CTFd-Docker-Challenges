@@ -45,14 +45,14 @@ function get_docker_status(container, challenge_id) {
     .then((result) => {
       result.data.forEach((item) => {
         if (
-          item.challenge_id == challenge_id &&
-          item.docker_image == container
+          item.challenge_id == challenge_id
+          // && item.docker_image == container // No es necesario comprobar la imagen si los challenge_id son únicos
         ) {
           var ports = String(item.ports).split(",");
           var data = "";
           ports.forEach((port) => {
             port = String(port);
-            data += "Host: " + item.host + " Port: " + port + "<br />";
+            data += "Host: " + item.host + "<br />Port: " + port + "<br />";
           });
 
           // Actualiza el contenido del contenedor 'docker_container'
@@ -85,7 +85,7 @@ function get_docker_status(container, challenge_id) {
 
             if (revertContainer) {
               revertContainer.innerHTML =
-                "Next Revert Available in " + minutes + ":" + seconds;
+                "Next Reset Available in " + minutes + ":" + seconds;
             }
 
             // Si el tiempo ha terminado, detén el temporizador y muestra el botón para revertir
@@ -97,7 +97,7 @@ function get_docker_status(container, challenge_id) {
                   container +
                   "','" +
                   challenge_id +
-                  "');\" class='btn btn-dark'><small style='color:white;'><i class=\"fas fa-redo\"></i> Revert</small></a>";
+                  "');\" class='btn btn-dark'><small style='color:white;'><i class=\"fas fa-redo\"></i> Reset</small></a>";
               }
             }
           }, 1000);
@@ -131,7 +131,7 @@ function start_container(container, challenge_id) {
     .catch((error) => {
       ezal({
         title: "Attention!",
-        body: "You can only revert a container once per 5 minutes! Please be patient.",
+        body: "You can only reset a container once per 5 minutes! Please be patient.",
         button: "Got it!",
       });
       console.error("Error en la solicitud:", error);

@@ -133,7 +133,20 @@ class ContainerAPI(Resource):
             # If this container is already created, we don't need another one.
             if (unix_time(datetime.utcnow()) - int(check.timestamp)) < 300:
                 # The exception would be if we are reverting a box. So we'll delete it if it exists and has been around for more than 5 minutes.
-                return abort(400, "You already have a container for this challenge.")
+                # return abort(400, "You already have a container for this challenge.")
+                # return data for the existing container
+                return {
+                    "id": check.id,
+                    "team_id": check.team_id,
+                    "user_id": check.user_id,
+                    "challenge_id": check.challenge_id,
+                    # "docker_image": check.docker_image,
+                    "timestamp": check.timestamp,
+                    "revert_time": check.revert_time,
+                    "instance_id": check.instance_id,
+                    "ports": check.ports.split(","),
+                    "host": check.host,
+                }
             else:
                 # If the container is older than 5 minutes, we'll delete it and create a new one.
                 delete_docker(docker, challenge.type, check.instance_id)
@@ -214,7 +227,7 @@ class DockerStatus(Resource):
                     "team_id": i.team_id,
                     "user_id": i.user_id,
                     "challenge_id": i.challenge_id,
-                    "docker_image": i.docker_image,
+                    # "docker_image": i.docker_image,
                     "timestamp": i.timestamp,
                     "revert_time": i.revert_time,
                     "instance_id": i.instance_id,
