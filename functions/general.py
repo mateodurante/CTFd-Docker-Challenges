@@ -41,8 +41,6 @@ def do_request(
         request_args["cert"] = (docker.client_cert, docker.client_key)
         request_args["verify"] = False
 
-    print(request_args)
-
     logging.info(f'Request to Docker: {request_args["method"]} {request_args["url"]}')
 
     resp = []
