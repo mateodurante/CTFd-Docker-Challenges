@@ -170,7 +170,7 @@ def load(app):
     app.config["CHALLENGE_RECAPTCHA"] = ReCaptcha(
         site_key=site_key,
         secret_key=secret_key,
-        is_enabled=site_key != "" and secret_key != "",
+        is_enabled=site_key != "",
     )
     register_script("//www.google.com/recaptcha/api.js?hl=en&render=explicit")
     app.jinja_env.globals.update(recaptcha_site_key=site_key)

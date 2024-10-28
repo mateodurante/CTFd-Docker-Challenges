@@ -150,8 +150,11 @@ function start_container(
   recaptchaResponse,
   captcha = "1"
 ) {
-  // Check if reCAPTCHA was completed
-  if (!recaptchaResponse) {
+  // Check if reCAPTCHA is enabled and was completed
+  const recaptchaEnabled = document
+    .getElementById("docker_container")
+    .getAttribute("sitekey");
+  if (recaptchaEnabled && !recaptchaResponse) {
     if (captcha === "1") {
       recaptchaResponse = captchaResponse1;
     } else {

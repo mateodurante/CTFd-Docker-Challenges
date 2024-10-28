@@ -61,12 +61,12 @@ If you want to add a 5 minutes docker challenge timeout you can add this cron jo
 
 ### Environment Variables
 
-RECAPTCHA_SITE_KEY - * Recaptcha Site Key for the challenge submission form
-RECAPTCHA_SECRET_KEY - * Recaptcha Secret Key for the challenge submission form
-DOCKER_RESET_SECONDS - Number of seconds to wait before resetting a docker container (default: 300, must be same or less than the cron job above)
-DOCKER_STALE_SECONDS - Number of seconds to wait before nuking a docker container automatically (default: 7200)
+- DOCKER_RESET_SECONDS - Number of seconds to wait before enable resetting a docker container to users (default: 300, must be same or less than the cron job above)
+- DOCKER_STALE_SECONDS - Number of seconds to wait before nuking a docker container automatically (default: 7200)
 
-* Required for Recaptcha to work, but not required for the plugin to function.
+If you want to use Recaptcha for the challenge submission form, you will need to set the following environment variables:
+- RECAPTCHA_SITE_KEY - Recaptcha Site Key for the challenge submission form
+- RECAPTCHA_SECRET_KEY - * Recaptcha Secret Key for the challenge submission form
 
 ### Update: 20210206
 Works with 3.2.1
