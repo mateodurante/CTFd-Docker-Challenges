@@ -1,3 +1,4 @@
+import os
 import tempfile
 import traceback
 
@@ -10,6 +11,7 @@ from CTFd.plugins import register_plugin_assets_directory
 from CTFd.plugins.challenges import CHALLENGE_CLASSES
 from CTFd.utils.config import is_teams_mode
 from CTFd.utils.decorators import admins_only
+from CTFd.utils.plugins import register_script
 
 from .api import (
     active_docker_namespace,
@@ -22,6 +24,7 @@ from .functions.general import get_repositories, get_docker_info, do_request
 from .models.container import DockerChallengeType
 from .models.models import DockerChallengeTracker, DockerConfig, DockerConfigForm
 from .models.service import DockerServiceChallengeType
+from .functions.recaptcha import ReCaptcha
 
 
 def __handle_file_upload(file_key, docker, attr_name):
@@ -161,6 +164,21 @@ def define_docker_status(app):
 
 def load(app):
     app.db.create_all()
+
+    site_key = os.getenv("RECAPTCHA_SITE_KEY", "")
+    secret_key = os.getenv("RECAPTCHA_SECRET_KEY", "")
+    app.config["CHALLENGE_RECAPTCHA"] = ReCaptcha(
+        site_key=site_key,
+        secret_key=secret_key,
+        is_enabled=site_key != "" and secret_key != "",
+    )
+    register_script("//www.google.com/recaptcha/api.js?hl=en&render=explicit")
+    app.jinja_env.globals.update(recaptcha_site_key=site_key)
+
+    app.config["DOCKER_RESET_SECONDS"] = int(os.getenv("DOCKER_RESET_SECONDS", 5 * 60))
+    app.config["DOCKER_STALE_SECONDS"] = int(
+        os.getenv("DOCKER_STALE_SECONDS", 120 * 60)
+    )
 
     CHALLENGE_CLASSES["docker"] = DockerChallengeType
     CHALLENGE_CLASSES["docker_service"] = DockerServiceChallengeType

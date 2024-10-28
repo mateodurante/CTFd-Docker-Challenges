@@ -1,12 +1,6 @@
 CTFd._internal.challenge.data = undefined;
 
-// CTFd._internal.challenge.renderer = CTFd.lib.markdown();
-
 CTFd._internal.challenge.preRender = function () {};
-
-CTFd._internal.challenge.render = function (markdown) {
-  return markdown;
-};
 
 CTFd._internal.challenge.postRender = function () {};
 
@@ -37,6 +31,40 @@ CTFd._internal.challenge.submit = function (preview) {
       return response;
     });
 };
+
+var captchaResponse1 = null;
+var captchaResponse2 = null;
+
+function loadRecaptcha() {
+  if (document.getElementById("recaptcha-container1").innerHTML !== "") {
+    return;
+  }
+  const sitekey = document
+    .getElementById("docker_container")
+    .getAttribute("sitekey");
+  grecaptcha.render(document.getElementById("recaptcha-container1"), {
+    sitekey: sitekey,
+    callback: (response) => {
+      captchaResponse1 = response;
+    },
+    theme: "dark",
+  });
+}
+
+function reloadRecaptcha() {
+  if (document.getElementById("recaptcha-container2").innerHTML !== "") {
+    return;
+  }
+  grecaptcha.render(document.getElementById("recaptcha-container2"), {
+    sitekey: document
+      .getElementById("docker_container")
+      .getAttribute("sitekey"),
+    callback: (response) => {
+      captchaResponse2 = response;
+    },
+    theme: "dark",
+  });
+}
 
 function get_docker_status(container, challenge_id) {
   // Realiza una solicitud GET con Fetch API
@@ -85,19 +113,24 @@ function get_docker_status(container, challenge_id) {
 
             if (revertContainer) {
               revertContainer.innerHTML =
-                "Next Reset Available in " + minutes + ":" + seconds;
+                "Container Reset Available in " + minutes + ":" + seconds;
             }
 
             // Si el tiempo ha terminado, detén el temporizador y muestra el botón para revertir
-            if (distance < 0) {
+            if (distance <= 0) {
               clearInterval(x);
               if (revertContainer) {
+                const sitekey = dockerContainer.getAttribute("sitekey");
                 revertContainer.innerHTML =
+                  '<div style="align-items: center; display: flex; justify-content: center;"> <div id="recaptcha-container2" x-ref="recaptchaContainer2" sitekey="' +
+                  sitekey +
+                  '"></div> </div>' +
                   "<a onclick=\"start_container('" +
-                  container +
+                  "" +
                   "','" +
                   challenge_id +
-                  "');\" class='btn btn-dark'><small style='color:white;'><i class=\"fas fa-redo\"></i> Reset</small></a>";
+                  "','','2');\" class='btn btn-dark'><small style='color:white;'><i class=\"fas fa-redo\"></i> Reset</small></a>";
+                reloadRecaptcha();
               }
             }
           }, 1000);
@@ -111,17 +144,38 @@ function get_docker_status(container, challenge_id) {
     });
 }
 
-function start_container(container, challenge_id) {
+function start_container(
+  container,
+  challenge_id,
+  recaptchaResponse,
+  captcha = "1"
+) {
+  // Check if reCAPTCHA was completed
+  if (!recaptchaResponse) {
+    if (captcha === "1") {
+      recaptchaResponse = captchaResponse1;
+    } else {
+      recaptchaResponse = captchaResponse2;
+    }
+    if (!recaptchaResponse) {
+      alert("Please, complete the reCAPTCHA verification first.");
+      return;
+    }
+  }
+
   CTFd.lib
     .$("#docker_container")
     .html(
       '<div class="text-center"><i class="fas fa-circle-notch fa-spin fa-1x"></i></div>'
     );
 
-  fetch(`/api/v1/container?id=${challenge_id}`)
+  fetch(`/api/v1/container?id=${challenge_id}&recaptcha=${recaptchaResponse}`)
     .then((response) => {
+      if (response.status === 403) {
+        throw new Error("recaptcha");
+      }
       if (!response.ok) {
-        throw new Error("Network response was not ok");
+        throw new Error("time");
       }
       return response.json();
     })
@@ -129,11 +183,18 @@ function start_container(container, challenge_id) {
       get_docker_status(container, challenge_id);
     })
     .catch((error) => {
-      ezal({
-        title: "Attention!",
-        body: "You can only reset a container once per 5 minutes! Please be patient.",
-        button: "Got it!",
-      });
+      if (error.message === "recaptcha") {
+        alert("Please complete the reCAPTCHA verification first.");
+      } else if (error.message === "time") {
+        alert(
+          "You can only reset a container once per 5 minutes! Please be patient."
+        );
+        // ezal({
+        //   title: "Error!",
+        //   body: error,
+        //   button: "Got it!",
+        // });
+      }
       console.error("Error en la solicitud:", error);
     });
 }
@@ -142,11 +203,10 @@ function ezal(args) {
   var res =
     '<div class="modal fade" tabindex="-1" role="dialog">' +
     '  <div class="modal-dialog" role="document">' +
-    '    <div class="modal-content">' +
+    '    <div class="modal-content" style="background-color: rgba(0, 0, 0, 0.9); color: white;">' +
     '      <div class="modal-header">' +
     `        <h5 class="modal-title">${args.title}</h5>` +
-    '        <button type="button" class="close" data-dismiss="modal" aria-label="Close">' +
-    '          <span aria-hidden="true">&times;</span>' +
+    '        <button type="button" data-dismiss="modal" aria-label="Close"  class="close btn-close" aria-label="Close">' +
     "        </button>" +
     "      </div>" +
     '      <div class="modal-body">' +
@@ -169,6 +229,11 @@ function ezal(args) {
   button.className = "btn btn-primary";
   button.setAttribute("data-dismiss", "modal");
   button.textContent = args.button || "Close";
+  button.onclick = function () {
+    modalElement.classList.remove("show");
+    modalElement.style.display = "none";
+    modalElement.remove(); // Eliminar el modal del DOM
+  };
   modalElement.querySelector(".modal-footer").appendChild(button);
 
   // Añadir el modal al DOM

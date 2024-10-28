@@ -1,3 +1,4 @@
+import os
 from flask import Blueprint
 
 from CTFd.models import (

@@ -53,6 +53,21 @@ This plugin for CTFd will allow your competing teams/users to start dockerized i
 * Confirm users are able to start/revert and access docker challenges.
 * Host an awesome CTF!
 
+If you want to add a 5 minutes docker challenge timeout you can add this cron job to your server on `/etc/cron.d/challenges_timeout`:
+
+```
+* * * * *  root docker ps --filter "status=running" --format "{{.ID}} {{.RunningFor}}" | grep -E '([5-9] minutes|[1-9][0-9] minutes| hours| days)' | cut -d' ' -f1 | xargs -I@ docker container kill @
+```
+
+### Environment Variables
+
+RECAPTCHA_SITE_KEY - * Recaptcha Site Key for the challenge submission form
+RECAPTCHA_SECRET_KEY - * Recaptcha Secret Key for the challenge submission form
+DOCKER_RESET_SECONDS - Number of seconds to wait before resetting a docker container (default: 300, must be same or less than the cron job above)
+DOCKER_STALE_SECONDS - Number of seconds to wait before nuking a docker container automatically (default: 7200)
+
+* Required for Recaptcha to work, but not required for the plugin to function.
+
 ### Update: 20210206
 Works with 3.2.1
 

@@ -1,7 +1,7 @@
 import json
 from datetime import datetime, timezone
 
-from flask import abort, request
+from flask import abort, request, current_app
 from flask_restx import Namespace, Resource
 
 from CTFd.models import db
@@ -90,30 +90,42 @@ class ContainerAPI(Resource):
     @authed_only
     # I wish this was Post... Issues with API/CSRF and whatnot. Open to a Issue solving this.
     def get(self):
+        app = current_app._get_current_object()
+        recaptcha = app.config.get("CHALLENGE_RECAPTCHA", False)
+        if recaptcha and recaptcha.is_enabled:
+            if not recaptcha.verify(response=request.args.get("recaptcha")):
+                return {"success": False, "error": "Invalid ReCaptcha"}, 403
+
         challenge_id = request.args.get("id")
         if not challenge_id:
             return abort(400, "Invalid request")
+
         docker = DockerConfig.query.filter_by(id=1).first()
         containers = DockerChallengeTracker.query.all()
         challenge = DockerChallenge.query.filter_by(id=challenge_id).first()
+
         if not challenge:
             challenge = DockerServiceChallenge.query.filter_by(id=challenge_id).first()
-        if not challenge:
-            return abort(404)
+            if not challenge:
+                return abort(404)
+
         if is_teams_mode():
             session = get_current_team()
         else:
             session = get_current_user()
+
         for i in containers:
             if (
                 int(session.id) == int(i.team_id if is_teams_mode() else i.user_id)
-                and (unix_time(datetime.utcnow()) - int(i.timestamp)) >= 7200
+                and (unix_time(datetime.utcnow()) - int(i.timestamp))
+                >= app.config["DOCKER_STALE_SECONDS"]
             ):
                 delete_docker(docker, challenge.type, i.instance_id)
                 DockerChallengeTracker.query.filter_by(
                     instance_id=i.instance_id
                 ).delete()
                 db.session.commit()
+
         if is_teams_mode():
             check = (
                 DockerChallengeTracker.query.filter_by(team_id=session.id)
@@ -131,7 +143,9 @@ class ContainerAPI(Resource):
 
         if check:
             # If this container is already created, we don't need another one.
-            if (unix_time(datetime.utcnow()) - int(check.timestamp)) < 300:
+            if (unix_time(datetime.utcnow()) - int(check.timestamp)) < app.config[
+                "DOCKER_RESET_SECONDS"
+            ]:
                 # The exception would be if we are reverting a box. So we'll delete it if it exists and has been around for more than 5 minutes.
                 # return abort(400, "You already have a container for this challenge.")
                 # return data for the existing container
@@ -192,7 +206,8 @@ class ContainerAPI(Resource):
             challenge_id=challenge_id,
             docker_image=challenge.docker_image,
             timestamp=unix_time(datetime.utcnow()),
-            revert_time=unix_time(datetime.utcnow()) + 300,
+            revert_time=unix_time(datetime.utcnow())
+            + app.config["DOCKER_RESET_SECONDS"],
             instance_id=instance_id,
             ports=",".join(ports),
             host=str(docker.hostname).split(":")[0],
