@@ -51,9 +51,11 @@ class DockerServiceChallengeType(BaseChallenge):
         :return:
         """
         data = request.form or request.get_json()
-        data["docker_secrets"] = data["docker_secrets_array"]
         data["docker_type"] = "service"
-        del data["docker_secrets_array"]
+        docker_secrets = data.get("docker_secrets_array")
+        if docker_secrets is not None:
+            data["docker_secrets"] = docker_secrets
+            del data["docker_secrets_array"]
         for attr, value in data.items():
             setattr(challenge, attr, value)
 
@@ -120,11 +122,9 @@ class DockerServiceChallengeType(BaseChallenge):
         :return:
         """
         data = request.form or request.get_json()
+        data["docker_secrets"] = data["docker_secrets_array"]
         data["docker_type"] = "service"
-        docker_secrets = data.get("docker_secrets_array")
-        if docker_secrets is not None:
-            data["docker_secrets"] = docker_secrets
-            del data["docker_secrets_array"]
+        del data["docker_secrets_array"]
         challenge = DockerServiceChallenge(**data)
         db.session.add(challenge)
         db.session.commit()
