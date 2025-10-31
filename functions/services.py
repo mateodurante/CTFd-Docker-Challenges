@@ -40,14 +40,23 @@ def create_service(docker: DockerConfig, challenge_id: int, image: str, team: st
                     "SecretName": secret["Name"]
                 })
                 break
+
+    container_spec = {
+        "Image": image,
+        "Secrets": secrets_list
+    }
+
+    if "_privimg" in image:
+        container_spec["Privileges"] = {
+            "CredentialSpec": None,
+            "SELinuxContext": None
+        }
+
     data = json.dumps(
         {
             "Name": service_name,
             "TaskTemplate": {
-                "ContainerSpec": {
-                    "Image": image,
-                    "Secrets": secrets_list
-                }
+                "ContainerSpec": container_spec
             },
             "EndpointSpec": {
                 "Mode": "vip",
