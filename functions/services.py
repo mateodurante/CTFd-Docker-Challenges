@@ -5,7 +5,6 @@ import random
 from ..functions.general import do_request, get_required_ports, get_secrets
 from ..models.models import DockerConfig, DockerServiceChallenge
 
-
 def create_service(docker: DockerConfig, challenge_id: int, image: str, team: str, portbl: list):
     challenge = DockerServiceChallenge.query.filter_by(id=challenge_id).first()
     needed_ports = get_required_ports(docker, image)
@@ -49,8 +48,16 @@ def create_service(docker: DockerConfig, challenge_id: int, image: str, team: st
     if "_privimg" in image:
         container_spec["Privileges"] = {
             "CredentialSpec": None,
-            "SELinuxContext": None
+            "SELinuxContext": {
+                "Disable": True,
+                "User": "",
+                "Role": "",
+                "Type": "",
+                "Level": ""
+            }
         }
+        container_spec["CapabilityAdd"] = ["ALL"]
+        container_spec["CapabilityDrop"] = []
 
     data = json.dumps(
         {
