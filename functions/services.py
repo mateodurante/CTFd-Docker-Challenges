@@ -66,7 +66,7 @@ def create_service(
             "Name": service_name,
             "TaskTemplate": {
                 "ContainerSpec": container_spec,
-                "Resources": {"Limits": {"Pids": 64}},
+                "Resources": {"Limits": {"Pids": 128}},
             },
             "EndpointSpec": {"Mode": "vip", "Ports": assigned_ports},
         }

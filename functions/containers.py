@@ -44,7 +44,7 @@ def create_container(docker: DockerConfig, image: str, team, portbl: list):
             "HostConfig": {
                 "PortBindings": bindings,
                 "Privileged": "_privimg" in image,
-                "PidsLimit": 64,
+                "PidsLimit": 128,
             },
         }
     )
